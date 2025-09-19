@@ -11,3 +11,4 @@ wheels/
 .virtual_documents
 
 speech_cache/
+convo/

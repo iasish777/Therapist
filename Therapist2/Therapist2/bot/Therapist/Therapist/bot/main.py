@@ -653,4 +653,3 @@ class TheTherapist:
 if __name__ == "__main__":
     app = TheTherapist()
     app.root.mainloop()
-
