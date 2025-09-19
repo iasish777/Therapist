@@ -1,3 +1,4 @@
+import sys
 import tkinter as tk
 from tkinter import ttk
 import time
@@ -31,14 +32,14 @@ try:
             print("API key not found in the file.")
 
 except FileNotFoundError:
-    print(f"Error: The file '{FILE_PATH}' was not found.")
+    print(f"Error: The file '{FILE_PATH}' was not found.", file=sys.stderr)
 except json.JSONDecodeError:
-    print(f"Error: The file '{FILE_PATH}' is not a valid JSON file.")
+    print(f"Error: The file '{FILE_PATH}' is not a valid JSON file.", file=sys.stderr)
 except Exception as e:
-    print(f"An unexpected error occurred: {e}")
+    print(f"An unexpected error occurred: {e}", file=sys.stderr)
 
 
-class AI:
+class TheTherapist:
     def __init__(self):
         genai.configure(api_key=GOOGLE_API_KEY)  # type: ignore
         self.session_active = False
@@ -105,11 +106,12 @@ class AI:
                 self.main_container, image=self.Therapist, bg="#1e1e1e", bd=0
             )
             self.image_label.pack(pady=10)
-        except:
+        except Exception as E:
             self.image_label = tk.Label(
                 self.main_container, text="Therapist Image", bg="#1e1e1e", fg="white"
             )
             self.image_label.pack(pady=10)
+            print(E, file=sys.stderr)
 
         # Welcome Message
         self.welcome_label = tk.Label(
@@ -413,8 +415,9 @@ class AI:
                 self.current_language = "hi"
             else:
                 self.current_language = "en"
-        except:
+        except Exception as E:
             self.current_language = "en"
+            print(f"{E}\nMaking english as the default language", file=sys.stderr)
 
         if user_input.lower() in ["exit", "quit", "bye"]:
             if self.current_language == "hi":
@@ -456,7 +459,8 @@ class AI:
         """Detect the language of the input text."""
         try:
             return detect(text)
-        except:
+        except Exception as E:
+            print(f"{E}\nChoosing english as the default language", file=sys.stderr)
             return "en"
 
     def bot(self, prompt: str, lang: str = "en") -> str:
@@ -558,7 +562,7 @@ class AI:
                 tts = gTTS(text, lang=lang)
                 tts.save(filepath)
             except Exception as e:
-                print(f"Error in TTS: {e}")
+                print(f"Error in TTS: {e}", file=sys.stderr)
                 return
 
         try:
@@ -570,7 +574,7 @@ class AI:
             while pygame.mixer.music.get_busy():
                 pygame.time.Clock().tick(10)
         except Exception as e:
-            print(f"Error playing audio: {e}")
+            print(f"Error playing audio: {e}", file=sys.stderr)
 
     def speech_to_text(self) -> str:
         """Convert speech to text."""
@@ -647,6 +651,6 @@ class AI:
 
 
 if __name__ == "__main__":
-    app = AI()
+    app = TheTherapist()
     app.root.mainloop()
 
