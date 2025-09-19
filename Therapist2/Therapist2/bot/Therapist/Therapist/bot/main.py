@@ -10,12 +10,37 @@ import speech_recognition as sr
 import threading
 from PIL import Image, ImageTk
 from langdetect import detect
+import json
 
-GOOGLE_API_KEY = 'AIzaSyCWLuLMH7qii0MVMQ7czYmFGvuR9xSc7u8'
+
+WORKING_PATH = os.getcwd()
+PATH_SEPRATOR = "/" if os.name == "posix" else "\\"
+FILE_PATH = WORKING_PATH + PATH_SEPRATOR + ".google_gen_api_key.json"
+
+try:
+    with open(FILE_PATH, "r") as file:
+        data = json.load(file)
+
+        GOOGLE_API_KEY = data.get("api_key")
+
+        if GOOGLE_API_KEY:
+            # Your code that uses the api_key goes here
+            print("API Key loaded successfully.")
+            # Example: print(f"Using API Key: {api_key}")
+        else:
+            print("API key not found in the file.")
+
+except FileNotFoundError:
+    print(f"Error: The file '{FILE_PATH}' was not found.")
+except json.JSONDecodeError:
+    print(f"Error: The file '{FILE_PATH}' is not a valid JSON file.")
+except Exception as e:
+    print(f"An unexpected error occurred: {e}")
+
 
 class AI:
     def __init__(self):
-        genai.configure(api_key=GOOGLE_API_KEY)
+        genai.configure(api_key=GOOGLE_API_KEY)  # type: ignore
         self.session_active = False
         self.SPEECH_CACHE = "speech_cache"
         self.WRITE_FOLDER = "convo"
@@ -35,7 +60,7 @@ class AI:
         self.sound_effects = {
             "Happy 😊": "happy_chime.mp3",
             "Sad 😢": "sad_tone.mp3",
-            "Stressed 😫": "relaxing_nature.mp3"
+            "Stressed 😫": "relaxing_nature.mp3",
         }
 
         self.recognizer = sr.Recognizer()
@@ -45,134 +70,193 @@ class AI:
         self.root = tk.Tk()
         self.root.title("HybridCare AI")
         self.root.geometry("900x700")
-        self.root.config(bg='#1e1e1e')
+        self.root.config(bg="#1e1e1e")
         self.root.minsize(800, 600)
 
         # Custom font
-        self.custom_font = ('Poppins', 12)
-        self.title_font = ('Poppins', 20, 'bold')
-        self.chat_font = ('Poppins', 11)
+        self.custom_font = ("Poppins", 12)
+        self.title_font = ("Poppins", 20, "bold")
+        self.chat_font = ("Poppins", 11)
 
         # Main container
-        self.main_container = tk.Frame(self.root, bg='#1e1e1e')
-        self.main_container.pack(fill='both', expand=True, padx=10, pady=10)
+        self.main_container = tk.Frame(self.root, bg="#1e1e1e")
+        self.main_container.pack(fill="both", expand=True, padx=10, pady=10)
 
         # Header Frame
-        self.header_frame = tk.Frame(self.main_container, bg='#045de9', height=80)
-        self.header_frame.pack(fill='x', pady=(0, 10))
+        self.header_frame = tk.Frame(self.main_container, bg="#045de9", height=80)
+        self.header_frame.pack(fill="x", pady=(0, 10))
 
         # Title Label
-        self.label = tk.Label(self.header_frame, text="HybridCare AI", 
-                            font=self.title_font, foreground='white', background='#045de9')
+        self.label = tk.Label(
+            self.header_frame,
+            text="HybridCare AI",
+            font=self.title_font,
+            foreground="white",
+            background="#045de9",
+        )
         self.label.pack(pady=15)
 
         # Therapist Image
         try:
-            self.load_image('C:\\Users\\shubh\\Downloads\\Therapist2 (2)\\Therapist2\\Therapist2\\AI\Images\\Therapist1.png')  # Update with your image path
-            self.image_label = tk.Label(self.main_container, image=self.Therapist, bg='#1e1e1e', bd=0)
+            self.load_image(
+                f"{os.path.join(WORKING_PATH, 'Therapist2', 'Therapist2', 'AI', 'AI', 'Images', 'Therapist1.png')}"
+            )  # Update with your image path
+            self.image_label = tk.Label(
+                self.main_container, image=self.Therapist, bg="#1e1e1e", bd=0
+            )
             self.image_label.pack(pady=10)
         except:
-            self.image_label = tk.Label(self.main_container, text="Therapist Image", bg='#1e1e1e', fg='white')
+            self.image_label = tk.Label(
+                self.main_container, text="Therapist Image", bg="#1e1e1e", fg="white"
+            )
             self.image_label.pack(pady=10)
 
         # Welcome Message
-        self.welcome_label = tk.Label(self.main_container, 
-                                    text="Hello! I'm your AI Therapist. How can I help you today?",
-                                    font=self.custom_font, fg='white', bg='#1e1e1e', wraplength=600)
+        self.welcome_label = tk.Label(
+            self.main_container,
+            text="Hello! I'm your AI Therapist. How can I help you today?",
+            font=self.custom_font,
+            fg="white",
+            bg="#1e1e1e",
+            wraplength=600,
+        )
         self.welcome_label.pack(pady=10)
 
         # Mood Selection Buttons
-        self.mood_frame = tk.Frame(self.main_container, bg='#1e1e1e')
+        self.mood_frame = tk.Frame(self.main_container, bg="#1e1e1e")
         self.mood_frame.pack(pady=10)
-        
+
         self.moods = ["Happy 😊", "Sad 😢", "Stressed 😫"]
         for mood in self.moods:
             mood_button = ttk.Button(
-                self.mood_frame, 
-                text=mood, 
-                style='TButton', 
-                command=lambda m=mood: self.set_mood(m)
+                self.mood_frame,
+                text=mood,
+                style="TButton",
+                command=lambda m=mood: self.set_mood(m),
             )
-            mood_button.pack(side='left', padx=5)
+            mood_button.pack(side="left", padx=5)
 
         # Chat Frame Container
-        self.chat_container = tk.Frame(self.main_container, bg='#1e1e1e')
-        self.chat_container.pack(fill='both', expand=True, pady=10)
+        self.chat_container = tk.Frame(self.main_container, bg="#1e1e1e")
+        self.chat_container.pack(fill="both", expand=True, pady=10)
 
         # Chat Frame
-        self.chat_frame = tk.Frame(self.chat_container, bg='#333333', bd=2, relief='flat')
-        self.chat_frame.pack(fill='both', expand=True)
+        self.chat_frame = tk.Frame(
+            self.chat_container, bg="#333333", bd=2, relief="flat"
+        )
+        self.chat_frame.pack(fill="both", expand=True)
 
         # Scrollbar
         self.scrollbar = ttk.Scrollbar(self.chat_frame)
-        self.scrollbar.pack(side='right', fill='y')
+        self.scrollbar.pack(side="right", fill="y")
 
         # Chat Text
-        self.chat_text = tk.Text(self.chat_frame, bg='#333333', fg='white', 
-                                font=self.chat_font, wrap=tk.WORD, 
-                                yscrollcommand=self.scrollbar.set,
-                                padx=10, pady=10)
-        self.chat_text.pack(fill='both', expand=True)
+        self.chat_text = tk.Text(
+            self.chat_frame,
+            bg="#333333",
+            fg="white",
+            font=self.chat_font,
+            wrap=tk.WORD,
+            yscrollcommand=self.scrollbar.set,
+            padx=10,
+            pady=10,
+        )
+        self.chat_text.pack(fill="both", expand=True)
         self.scrollbar.config(command=self.chat_text.yview)
 
         # Input Frame
-        self.input_frame = tk.Frame(self.main_container, bg='#1e1e1e')
-        self.input_frame.pack(fill='x', pady=(5, 10))
+        self.input_frame = tk.Frame(self.main_container, bg="#1e1e1e")
+        self.input_frame.pack(fill="x", pady=(5, 10))
 
         # Input Textbox
-        self.input_textbox = tk.Text(self.input_frame, height=4, font=self.custom_font, 
-                                   bg='#444444', fg='white', bd=0, wrap=tk.WORD,
-                                   insertbackground='white')
-        self.input_textbox.pack(side='left', fill='x', expand=True, padx=(0, 5))
+        self.input_textbox = tk.Text(
+            self.input_frame,
+            height=4,
+            font=self.custom_font,
+            bg="#444444",
+            fg="white",
+            bd=0,
+            wrap=tk.WORD,
+            insertbackground="white",
+        )
+        self.input_textbox.pack(side="left", fill="x", expand=True, padx=(0, 5))
         self.add_placeholder(self.input_textbox, "Type or speak your message here...")
 
         # Button Frame
-        self.button_frame = tk.Frame(self.input_frame, bg='#1e1e1e')
-        self.button_frame.pack(side='right', fill='y')
+        self.button_frame = tk.Frame(self.input_frame, bg="#1e1e1e")
+        self.button_frame.pack(side="right", fill="y")
 
         # Send Button
-        self.send_button = ttk.Button(self.button_frame, text="Send", 
-                                     style='TButton', command=self.send_text_message)
-        self.send_button.pack(fill='x', pady=(0, 5))
+        self.send_button = ttk.Button(
+            self.button_frame,
+            text="Send",
+            style="TButton",
+            command=self.send_text_message,
+        )
+        self.send_button.pack(fill="x", pady=(0, 5))
 
         # Speak Button
-        self.speak_button = ttk.Button(self.button_frame, text="Speak", 
-                                      style='TButton', command=self.start_speech_input)
-        self.speak_button.pack(fill='x')
+        self.speak_button = ttk.Button(
+            self.button_frame,
+            text="Speak",
+            style="TButton",
+            command=self.start_speech_input,
+        )
+        self.speak_button.pack(fill="x")
 
         # Control Frame
-        self.control_frame = tk.Frame(self.main_container, bg='#1e1e1e')
-        self.control_frame.pack(fill='x', pady=10)
+        self.control_frame = tk.Frame(self.main_container, bg="#1e1e1e")
+        self.control_frame.pack(fill="x", pady=10)
 
         # Chat Button
-        self.chat_button = ttk.Button(self.control_frame, text="Start Session", 
-                                     style='TButton', command=self.toggle_chat)
-        self.chat_button.pack(side='left', padx=5)
+        self.chat_button = ttk.Button(
+            self.control_frame,
+            text="Start Session",
+            style="TButton",
+            command=self.toggle_chat,
+        )
+        self.chat_button.pack(side="left", padx=5)
 
         # Dark Mode Button
-        self.dark_mode_button = ttk.Button(self.control_frame, text="Toggle Dark Mode", 
-                                          style='TButton', command=self.toggle_dark_mode)
-        self.dark_mode_button.pack(side='left', padx=5)
+        self.dark_mode_button = ttk.Button(
+            self.control_frame,
+            text="Toggle Dark Mode",
+            style="TButton",
+            command=self.toggle_dark_mode,
+        )
+        self.dark_mode_button.pack(side="left", padx=5)
 
         # Status Label
-        self.status_label = tk.Label(self.main_container, text="", font=self.custom_font, 
-                                   foreground='#045de9', background='#1e1e1e')
-        self.status_label.pack(side='bottom', pady=5)
+        self.status_label = tk.Label(
+            self.main_container,
+            text="",
+            font=self.custom_font,
+            foreground="#045de9",
+            background="#1e1e1e",
+        )
+        self.status_label.pack(side="bottom", pady=5)
 
         # Style for ttk.Button
         self.style = ttk.Style()
-        self.style.theme_use('default')
-        self.style.configure('TButton', font=self.custom_font, 
-                           background='#045de9', foreground='white', 
-                           borderwidth=0, focuscolor='none')
-        self.style.map('TButton',
-                      background=[('active', '#0348b5')],
-                      foreground=[('active', 'white')])
+        self.style.theme_use("default")
+        self.style.configure(
+            "TButton",
+            font=self.custom_font,
+            background="#045de9",
+            foreground="white",
+            borderwidth=0,
+            focuscolor="none",
+        )
+        self.style.map(
+            "TButton",
+            background=[("active", "#0348b5")],
+            foreground=[("active", "white")],
+        )
 
         # Configure text tags for chat
-        self.chat_text.tag_config('user', foreground='#4fc3f7')
-        self.chat_text.tag_config('bot', foreground='#81c784')
-        self.chat_text.tag_config('system', foreground='#ffb74d')
+        self.chat_text.tag_config("user", foreground="#4fc3f7")
+        self.chat_text.tag_config("bot", foreground="#81c784")
+        self.chat_text.tag_config("system", foreground="#ffb74d")
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
@@ -185,40 +269,44 @@ class AI:
     def add_placeholder(self, textbox, placeholder):
         """Add placeholder text to the input textbox."""
         textbox.insert(tk.END, placeholder)
-        textbox.config(fg='gray')
-        textbox.bind("<FocusIn>", lambda event: self.clear_placeholder(textbox, placeholder))
-        textbox.bind("<FocusOut>", lambda event: self.add_placeholder(textbox, placeholder))
+        textbox.config(fg="gray")
+        textbox.bind(
+            "<FocusIn>", lambda event: self.clear_placeholder(textbox, placeholder)
+        )
+        textbox.bind(
+            "<FocusOut>", lambda event: self.add_placeholder(textbox, placeholder)
+        )
 
     def clear_placeholder(self, textbox, placeholder):
         """Clear placeholder text when the textbox is focused."""
         if textbox.get("1.0", tk.END).strip() == placeholder:
             textbox.delete("1.0", tk.END)
-            textbox.config(fg='white')
+            textbox.config(fg="white")
 
     def toggle_dark_mode(self):
         """Toggle between dark and light mode."""
         self.dark_mode = not self.dark_mode
-        
+
         if self.dark_mode:
             # Dark mode colors
-            bg_color = '#1e1e1e'
-            text_color = 'white'
-            chat_bg = '#333333'
-            input_bg = '#444444'
-            header_bg = '#045de9'
+            bg_color = "#1e1e1e"
+            text_color = "white"
+            chat_bg = "#333333"
+            input_bg = "#444444"
+            header_bg = "#045de9"
         else:
             # Light mode colors
-            bg_color = '#ffffff'
-            text_color = 'black'
-            chat_bg = '#f0f0f0'
-            input_bg = '#ffffff'
-            header_bg = '#045de9'
+            bg_color = "#ffffff"
+            text_color = "black"
+            chat_bg = "#f0f0f0"
+            input_bg = "#ffffff"
+            header_bg = "#045de9"
 
         # Update all widgets
         self.root.config(bg=bg_color)
         self.main_container.config(bg=bg_color)
         self.header_frame.config(bg=header_bg)
-        self.label.config(bg=header_bg, fg='white')  # Keep header text white
+        self.label.config(bg=header_bg, fg="white")  # Keep header text white
         self.image_label.config(bg=bg_color)
         self.welcome_label.config(bg=bg_color, fg=text_color)
         self.mood_frame.config(bg=bg_color)
@@ -226,7 +314,9 @@ class AI:
         self.chat_frame.config(bg=chat_bg)
         self.chat_text.config(bg=chat_bg, fg=text_color)
         self.input_frame.config(bg=bg_color)
-        self.input_textbox.config(bg=input_bg, fg=text_color, insertbackground=text_color)
+        self.input_textbox.config(
+            bg=input_bg, fg=text_color, insertbackground=text_color
+        )
         self.button_frame.config(bg=bg_color)
         self.control_frame.config(bg=bg_color)
         self.status_label.config(bg=bg_color, fg=header_bg)
@@ -235,7 +325,7 @@ class AI:
         """Set the user's mood and provide mood-specific feedback."""
         self.mood = mood
         self.welcome_label.config(text=f"You're feeling {mood}. Let's talk about it!")
-        self.add_to_chat(f"System: Mood set to {mood}\n", 'system')
+        self.add_to_chat(f"System: Mood set to {mood}\n", "system")
 
         # Mood-specific response
         if mood == "Happy 😊":
@@ -243,10 +333,12 @@ class AI:
         elif mood == "Sad 😢":
             response = "I'm here for you. Let's talk about what's on your mind."
         elif mood == "Stressed 😫":
-            response = "Feeling stressed? Let's work on some relaxation techniques together."
-        
-        self.text_to_speech(response)
-        self.add_to_chat(f"Rossane: {response}\n", 'bot')
+            response = (
+                "Feeling stressed? Let's work on some relaxation techniques together."
+            )
+
+        self.text_to_speech(response)  # type: ignore
+        self.add_to_chat(f"Rossane: {response}\n", "bot")  # type: ignore
 
     def on_closing(self):
         """Handle window closing."""
@@ -260,13 +352,13 @@ class AI:
         if self.session_active:
             self.session_active = False
             self.chat_button.config(text="Start Session")
-            self.add_to_chat("System: Session ended\n", 'system')
+            self.add_to_chat("System: Session ended\n", "system")
             self.text_to_speech("Goodbye! Session ended.")
         else:
             self.session_active = True
             self.chat_button.config(text="End Session")
             self.chat_text.delete(1.0, tk.END)
-            self.add_to_chat("System: Session started\n", 'system')
+            self.add_to_chat("System: Session started\n", "system")
             self.text_to_speech("Session started.")
             chat_thread = threading.Thread(target=self.chat)
             chat_thread.daemon = True
@@ -277,11 +369,11 @@ class AI:
         if not self.session_active:
             self.text_to_speech("Please start a session first.")
             return
-            
+
         user_input = self.input_textbox.get("1.0", tk.END).strip()
         if not user_input or user_input == "Type or speak your message here...":
             return
-            
+
         self.input_textbox.delete("1.0", tk.END)
         self.process_user_input(user_input)
 
@@ -290,7 +382,7 @@ class AI:
         if not self.session_active:
             self.text_to_speech("Please start a session first.")
             return
-            
+
         speech_thread = threading.Thread(target=self.speech_input_thread)
         speech_thread.daemon = True
         speech_thread.start()
@@ -299,12 +391,12 @@ class AI:
         """Thread for handling speech input."""
         self.status_label.config(text="Listening...")
         self.root.update()
-        
+
         user_input = self.speech_to_text()
-        
+
         self.status_label.config(text="")
         self.root.update()
-        
+
         if user_input:
             self.input_textbox.delete("1.0", tk.END)
             self.input_textbox.insert(tk.END, user_input)
@@ -312,8 +404,8 @@ class AI:
 
     def process_user_input(self, user_input):
         """Process user input and generate response."""
-        self.add_to_chat(f"You: {user_input}\n", 'user')
-        
+        self.add_to_chat(f"You: {user_input}\n", "user")
+
         # Detect language
         try:
             detected_lang = detect(user_input)
@@ -329,8 +421,8 @@ class AI:
                 goodbye_msg = "अलविदा! मुझे आशा है कि आपका दिन अच्छा होगा।"
             else:
                 goodbye_msg = "Goodbye! I hope you have a great day."
-            
-            self.add_to_chat(f"Rossane: {goodbye_msg}\n", 'bot')
+
+            self.add_to_chat(f"Rossane: {goodbye_msg}\n", "bot")
             self.text_to_speech(goodbye_msg, self.current_language)
             self.toggle_chat()
             return
@@ -344,13 +436,13 @@ class AI:
         """Get response from AI and update UI."""
         self.status_label.config(text="Thinking...")
         self.root.update()
-        
+
         response = self.bot(user_input, self.current_language)
-        
+
         self.status_label.config(text="")
         self.root.update()
-        
-        self.add_to_chat(f"Rossane: {response}\n", 'bot')
+
+        self.add_to_chat(f"Rossane: {response}\n", "bot")
         self.text_to_speech(response, self.current_language)
 
     def add_to_chat(self, text, tag):
@@ -374,9 +466,9 @@ class AI:
             return self.response_cache[cache_key]
 
         try:
-            model = genai.GenerativeModel("gemini-1.5-flash")
+            model = genai.GenerativeModel("gemini-1.5-flash")  # type: ignore
             mood_prompt = f"The user is feeling {self.mood}. " if self.mood else ""
-            
+
             if lang == "hi":
                 prompt_text = f"""
                 आप एक AI हैं जो एक चिकित्सक और डॉक्टर दोनों की भूमिका निभाते हैं।
@@ -419,7 +511,7 @@ class AI:
                 {mood_prompt}User: {prompt}
                 AI:
                 """
-            
+
             response = model.generate_content(prompt_text)
             response_text = response.text.strip()
             self.response_cache[cache_key] = response_text
@@ -427,14 +519,14 @@ class AI:
         except Exception as e:
             return f"Error: {str(e)}"
 
-    def text_to_speech(self, text: str, lang: str = None) -> None:
+    def text_to_speech(self, text: str, lang: str = None) -> None:  # type: ignore
         """Convert text to speech."""
         if not text:
             return
-            
+
         if not lang:
             lang = self.current_language
-            
+
         filename = f"{hashlib.md5(text.encode()).hexdigest()}.mp3"
         filepath = os.path.join(self.SPEECH_CACHE, filename)
 
@@ -461,14 +553,16 @@ class AI:
         """Convert speech to text."""
         try:
             with sr.Microphone() as source:
-                self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
+                self.recognizer.adjust_for_ambient_noise(source, duration=1)
                 audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=10)
 
                 try:
-                    text = self.recognizer.recognize_google(audio, language=self.current_language)
+                    text = self.recognizer.recognize_google(  # type: ignore
+                        audio, language=self.current_language
+                    )
                 except sr.UnknownValueError:
-                    text = self.recognizer.recognize_google(audio, language="en")
-                
+                    text = self.recognizer.recognize_google(audio, language="en")  # type: ignore
+
                 return text
 
         except sr.WaitTimeoutError:
@@ -490,12 +584,14 @@ class AI:
 
     def chat(self) -> None:
         """Handle the chat session."""
-        self.text_to_speech("Welcome to the session. You can speak or type your messages.")
+        self.text_to_speech(
+            "Welcome to the session. You can speak or type your messages."
+        )
         self.text_to_speech("Hi, I am Rossane. Could you tell me your name?")
-        
+
         self.status_label.config(text="Waiting for your name...")
         self.root.update()
-        
+
         name = ""
         while not name and self.session_active:
             name = self.speech_to_text()
@@ -506,15 +602,19 @@ class AI:
         if not self.session_active:
             return
 
-        name = ''.join(c if c.isalnum() or c in (' ', '-', '_') else '_' for c in name).strip()
-        self.add_to_chat(f"System: User identified as {name}\n", 'system')
-        self.text_to_speech(f"Hello {name}, let's begin our session. What's on your mind today?")
+        name = "".join(
+            c if c.isalnum() or c in (" ", "-", "_") else "_" for c in name
+        ).strip()
+        self.add_to_chat(f"System: User identified as {name}\n", "system")
+        self.text_to_speech(
+            f"Hello {name}, let's begin our session. What's on your mind today?"
+        )
 
         filename = os.path.join(self.WRITE_FOLDER, f"{name}.txt")
 
-        with open(filename, "a", encoding='utf-8') as convo_file:
+        with open(filename, "a", encoding="utf-8") as convo_file:
             convo_file.write(f"Session started at {time.ctime()}\n")
-            
+
             while self.session_active:
                 # The actual conversation is now handled through button clicks
                 # or speech input, so we just need to wait here
@@ -522,6 +622,8 @@ class AI:
 
             convo_file.write(f"Session ended at {time.ctime()}\n\n")
 
+
 if __name__ == "__main__":
     app = AI()
     app.root.mainloop()
+
